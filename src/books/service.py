@@ -11,10 +11,22 @@ class BookService:
         return result.all()
 
     async def get_book(self, book_uid:str, session:AsyncSession):
-        pass
+        statement = select(Book).where(Book.uid == book_uid)
+
+        result = await session.exec(statement=statement)
+
+        return result.first()
 
     async def create_book(self, book_data:BookCreateModel, session:AsyncSession):
-        pass
+        book_data_dict = book_data.model_dump()
+
+        new_book = Book(**book_data_dict)
+
+        session.add(new_book)
+
+        session.commit()
+
+        return new_book
 
     async def update_book(self, book_uid:str, update_book_data:BookUpdateModel, session:AsyncSession):
         pass
