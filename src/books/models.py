@@ -10,7 +10,7 @@ class Book(SQLModel, table=True):
     title : str
     author : str
     publisher : str
-    published_date : date
+    published_date : str
     page_count : int
     language : str
     created_at : dt = Field(sa_column=Column(pg.TIMESTAMP, default = dt.now))
