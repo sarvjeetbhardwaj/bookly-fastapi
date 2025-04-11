@@ -3,6 +3,7 @@ from src.books.routes import book_router
 from contextlib import asynccontextmanager
 from src.db.create_engine import init_db
 from src.config import config
+from src.auth.routes import auth_router
 
 @asynccontextmanager
 async def life_span(app:FastAPI): ## this defines which function/functions will run till what life span of the program
@@ -20,4 +21,5 @@ app = FastAPI(
     lifespan=life_span
 )
 
-app.include_router(book_router, tags=['books']) 
+app.include_router(book_router, tags=['books'])
+app.include_router(auth_router, tags=['auth']) 

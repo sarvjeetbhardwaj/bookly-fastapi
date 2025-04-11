@@ -21,7 +21,7 @@ async def create_book(book_data:BookCreateModel, session: AsyncSession = Depends
     new_book =  await book_service.create_book(book_data=book_data, session=session)
     return new_book
 
-@book_router.get('/books/{book_uid}', status_code=status.HTTP_200_OK, response_model=Book)
+@book_router.get('/books/{book_uid}', status_code=status.HTTP_200_OK)
 async def get_all_books(book_uid:str, session: AsyncSession = Depends(get_session)):
     book = await book_service.get_book(book_uid=book_uid, session=session)
 
