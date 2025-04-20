@@ -14,7 +14,7 @@ from src.auth.dependencies import RefreshTokenBearer, AccessTokenBearer, get_cur
 
 auth_router = APIRouter()
 user_service = UserService()
-role_checker = RoleChecker(allowed_roles=['admin'])
+role_checker = RoleChecker(allowed_roles=['admin', 'user'])
 
 REFRESH_TOKEN_EXPIRY = 2
 
@@ -80,6 +80,6 @@ async def get_new_access_token(token_details:dict = Depends(RefreshTokenBearer()
 
 
 
-@auth_router.get('/me')
+@auth_router.get('/me', response_model=UserModel)
 async def get_curr_user(user = Depends(get_current_user), _:bool=Depends(role_checker)):
     return user
