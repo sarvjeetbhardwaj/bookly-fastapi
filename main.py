@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from src.db.create_engine import init_db
 from src.config import config
 from src.auth.routes import auth_router
+from src.review.routes import review_router
 
 @asynccontextmanager
 async def life_span(app:FastAPI): ## this defines which function/functions will run till what life span of the program
@@ -23,3 +24,4 @@ app = FastAPI(
 
 app.include_router(book_router, tags=['books'])
 app.include_router(auth_router, tags=['auth']) 
+app.include_router(review_router, tags=['reviews']) 
