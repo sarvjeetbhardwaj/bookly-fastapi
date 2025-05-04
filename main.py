@@ -1,10 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,status
 from src.books.routes import book_router
 from contextlib import asynccontextmanager
 from src.db.create_engine import init_db
 from src.config import config
 from src.auth.routes import auth_router
 from src.review.routes import review_router
+from src.errors import UserAlreadyExists, create_exception_handler
+from fastapi.responses import JSONResponse
 
 @asynccontextmanager
 async def life_span(app:FastAPI): ## this defines which function/functions will run till what life span of the program
@@ -21,6 +23,17 @@ app = FastAPI(
     version='v1',
     #lifespan=life_span
 )
+
+## Below needs to added for all the exception classes created in src.errors 
+app.add_exception_handler(UserAlreadyExists, create_exception_handler(status_code=status.HTTP_403_FORBIDDEN,
+                                                                      initial_detail={'message':'User with email aleardy exists',
+                                                                                      'error_code':'user_exists'}))
+
+
+@app.exception_handler(exc_class_or_status_code=500)
+async def internal_server_error(request, exc):
+    return JSONResponse(content={'message':'something went wrong', 'error_code': 'server_error'},
+                            status_code=status)
 
 app.include_router(book_router, tags=['books'])
 app.include_router(auth_router, tags=['auth']) 

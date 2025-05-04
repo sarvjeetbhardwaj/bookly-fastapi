@@ -9,7 +9,6 @@ from datetime import timedelta, datetime
 from fastapi.responses import JSONResponse
 from src.auth.dependencies import RefreshTokenBearer, AccessTokenBearer, get_current_user, RoleChecker
 
-
 #from src.db.redis import add_jti_to_blocklist
 
 auth_router = APIRouter()

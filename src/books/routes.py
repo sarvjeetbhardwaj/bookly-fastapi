@@ -8,7 +8,7 @@ from fastapi.exceptions import HTTPException
 from src.db.create_engine import get_session
 from src.books.service import BookService
 from src.auth.dependencies import TokenBearer, RoleChecker
-from jwt.exceptions import ExpiredSignatureError
+#from jwt.exceptions import ExpiredSignatureError
 
 book_router = APIRouter()
 book_service = BookService()
