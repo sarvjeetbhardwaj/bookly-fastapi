@@ -6,11 +6,12 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 
+
 ## thhis function creates a database engine
 engine = AsyncEngine(
     create_engine(
         url = config.DATABASE_URL,
-        echo=True,
+        echo=False,
     )
 )
 
