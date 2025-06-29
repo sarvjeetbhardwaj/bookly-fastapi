@@ -1,10 +1,15 @@
-from fastapi import APIRouter, Depends, status
-from src.auth.schemas import UserCreateModel, UserModel, UserLoginModel, UserBooksModel, EmailModel
+from fastapi import APIRouter, Depends, status,BackgroundTasks
+from src.auth.schemas import (
+    UserCreateModel, UserModel, UserLoginModel, UserBooksModel, EmailModel,
+    PassWordResetRequestModel, PasswordResetconfirmModel)
 from src.auth.service import UserService
 from src.db.create_engine import get_session
 from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi.exceptions import HTTPException
-from src.auth.utils import create_access_token, decode_token, verify_password, create_url_safe_token, decode_url_safe_token
+from src.auth.utils import (
+    create_access_token, decode_token, verify_password, create_url_safe_token, decode_url_safe_token,
+    generate_password_hash
+)
 from datetime import timedelta, datetime
 from fastapi.responses import JSONResponse
 from src.auth.dependencies import RefreshTokenBearer, AccessTokenBearer, get_current_user, RoleChecker
@@ -31,7 +36,8 @@ async def send_mail(emails:EmailModel):
     return {'message' : 'Email sent successfully'}
 
 @auth_router.post('/signup', status_code=status.HTTP_201_CREATED)
-async def create_user_account(user_data:UserCreateModel, session: AsyncSession=Depends(get_session)):
+async def create_user_account(user_data:UserCreateModel, bg_task:BackgroundTasks,
+                              session: AsyncSession=Depends(get_session)):
     email = user_data.email
 
     user_exists = await user_service.user_exists(email=email, session=session)
@@ -52,7 +58,7 @@ async def create_user_account(user_data:UserCreateModel, session: AsyncSession=D
     
     message = create_message(recepients=[email], subject='Verify your email address',body=html_message)
 
-    await mail.send_message(message=message)
+    bg_task.add_task(mail.send_message, message)
 
     return {
         'message': 'Account Created ! Check email to verify your account',
@@ -131,3 +137,54 @@ async def get_new_access_token(token_details:dict = Depends(RefreshTokenBearer()
 @auth_router.get('/me', response_model=UserBooksModel)
 async def get_curr_user(user = Depends(get_current_user), _:bool=Depends(role_checker)):
     return user
+
+
+@auth_router.post('/password_reset_request')
+async def password_reset_request(email_data:PassWordResetRequestModel):
+    email = email_data.email
+
+    token =  create_url_safe_token(data={'email':email})
+    
+    link = f'http://{config.DOMAIN}/password-verify/{token}'
+
+    html_message = f'''
+                    <h1>Verify your email </h1>
+                    <p>Please click this <a href="{link}">link</a> to verify you email </p>
+                '''
+    
+    message = create_message(recepients=[email], subject='Reset your password',body=html_message)
+
+    await mail.send_message(message=message)
+
+    return JSONResponse(content={'message': 'Check your email for instrauction to reset your password'},
+                        status_code=status.HTTP_200_OK)
+
+
+
+@auth_router.post('/password-verify/{token}')
+async def reset_account_password(token:str, password:PasswordResetconfirmModel , 
+                                 session:AsyncSession=Depends(get_session)):
+    
+    new_password = password.new_password
+    confirm_password = password.confirm_new_password
+
+    if new_password != confirm_password:
+        raise HTTPException(detail='Password Donot Match', status_code=status.HTTP_400_BAD_REQUEST)
+    
+    token_data = decode_url_safe_token(token=token)
+    user_email = token_data.get('email')
+
+    if user_email:
+        user = await user_service.get_user_by_email(email=user_email, session=session)
+
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={'message': 'User not found'})
+        
+        password_hash = generate_password_hash(password=new_password)
+        await user_service.update_user(user=user, user_data={'password_hash':password_hash} , session=session)
+
+        return JSONResponse(content={'message': 'Password Reset Successfully'},
+                            status_code=status.HTTP_200_OK)
+    
+    return JSONResponse(content={'message' : 'Error occured during password request'},
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
