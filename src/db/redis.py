@@ -1,7 +1,10 @@
 import redis
 from src.config import config
+import aioredis
 
 JTI_EXPIRY = 3600
+
+token_blocklist = aioredis.from_url(config.REDIS_URL)
 
 #token_blocklist = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT, db=0)
 

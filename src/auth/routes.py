@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from src.auth.dependencies import RefreshTokenBearer, AccessTokenBearer, get_current_user, RoleChecker
 from src.mail import mail, create_message
 from src.config import config
+from src.celery_tasks import send_email
 
 #from src.db.redis import add_jti_to_blocklist
 
@@ -25,13 +26,15 @@ role_checker = RoleChecker(allowed_roles=['admin', 'user'])
 REFRESH_TOKEN_EXPIRY = 2
 
 @auth_router.post('/send_mail')
-async def send_mail(emails:EmailModel):
+async def send_mail(emails:EmailModel,bg_task:BackgroundTasks):
     emails = emails.email_addresses
+    subject = 'Welcome to our app'
     html ="<h1>Welcome to the app </h1>"
 
-    message = create_message(recepients=emails, subject='Welcome',body=html)
+    #message = create_message(recepients=emails, subject='Welcome',body=html)
+    #bg_task.add_task(mail.send_message, message) ## async task
 
-    await mail.send_message(message=message)
+    send_email.delay(emails=emails,subject=subject, body=html ) ## celery task
 
     return {'message' : 'Email sent successfully'}
 
@@ -140,7 +143,7 @@ async def get_curr_user(user = Depends(get_current_user), _:bool=Depends(role_ch
 
 
 @auth_router.post('/password_reset_request')
-async def password_reset_request(email_data:PassWordResetRequestModel):
+async def password_reset_request(email_data:PassWordResetRequestModel,bg_task:BackgroundTasks):
     email = email_data.email
 
     token =  create_url_safe_token(data={'email':email})
@@ -154,7 +157,7 @@ async def password_reset_request(email_data:PassWordResetRequestModel):
     
     message = create_message(recepients=[email], subject='Reset your password',body=html_message)
 
-    await mail.send_message(message=message)
+    bg_task.add_task(mail.send_message, message)
 
     return JSONResponse(content={'message': 'Check your email for instrauction to reset your password'},
                         status_code=status.HTTP_200_OK)
